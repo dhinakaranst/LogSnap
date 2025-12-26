@@ -1,22 +1,43 @@
 "use client";
 
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { BackgroundBeams } from "../../components/ui/shadcn-io/background-beams";
+import { useEffect, useState } from "react";
 
-
-export default function LogsPage() {
-  const { data: session, status } = useSession();
-  const router = useRouter();
+export default function DashboardPage() {
+  const [logs, setLogs] = useState<any[]>([]);
 
   useEffect(() => {
-    if (status === "unauthenticated") {
-      router.push("/login");
-    }
-  }, [status, router]);
+    fetch("/api/logs")
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setLogs(data);
+        } else {
+          console.error("Expected array, got:", data);
+          setLogs([]);
+        }
+      })
+      .catch(err => {
+        console.error("Fetch error:", err);
+        setLogs([]);
+      });
+  }, []);
 
-  if (status === "loading") return <div>Loading...</div>;
-  if (!session) return null;
+  return (
+    <div>
+      <h1 className="text-2xl font-bold mb-4">Recent Logs</h1>
 
-  return <div>Logs page</div>;
+      {logs.length === 0 && (
+        <p className="text-white/60">No logs yet</p>
+      )}
+
+      {logs.map((log) => (
+        <div key={log._id} className="mb-2 rounded bg-white/5 p-3">
+          <p className="text-sm font-semibold">
+            {log.level} · {log.source}
+          </p>
+          <p>{log.message}</p>
+        </div>
+      ))}
+    </div>
+  );
 }

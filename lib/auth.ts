@@ -1,10 +1,10 @@
-import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { connectDB } from "@/lib/db";
-import User from "@/model/User";
+import { AuthOptions } from "next-auth";
 import bcrypt from "bcryptjs";
+import { connectDB } from "@/lib/db";
+import User from "../model/User";
 
-const handler = NextAuth({
+export const authOptions: AuthOptions = {
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -12,7 +12,6 @@ const handler = NextAuth({
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
-
       async authorize(credentials) {
         await connectDB();
 
@@ -36,10 +35,7 @@ const handler = NextAuth({
       },
     }),
   ],
-
   session: { strategy: "jwt" },
   pages: { signIn: "/login" },
   secret: process.env.NEXTAUTH_SECRET,
-});
-
-export { handler as GET, handler as POST };
+};
