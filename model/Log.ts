@@ -10,6 +10,15 @@ const LogSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  normalizedMessage: {
+  type: String,
+  required: true,
+},
+  hash: {
+  type: String,
+  required: true,
+  index: true,
+},
   source: {
     type: String,
     required: true,
@@ -22,6 +31,10 @@ const LogSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+
+
+  
+
 });
 
 const Log =
