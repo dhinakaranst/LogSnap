@@ -1,26 +1,47 @@
 import { NextResponse } from "next/server";
+import LogStat from "@/model/LogStat";
 import { connectDB } from "@/lib/db";
-import Log from "@/model/Log";
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     await connectDB();
 
-    const totalLogs = await Log.countDocuments();
-    const errorLogs = await Log.countDocuments({ level: "ERROR" });
-    const warnLogs = await Log.countDocuments({ level: "WARN" });
+    const { searchParams } = new URL(req.url);
+    const hash = searchParams.get("hash");
 
+    if (!hash) {
+      return NextResponse.json(
+        { success: false, error: "cluster hash required" },
+        { status: 400 }
+      );
+    }
+
+    // 1️⃣ FETCH WINDOW STATS
+    const stats = await LogStat.find({ clusterHash: hash })
+      .sort({ windowStart: 1 })
+      .lean();
+
+    // 2️⃣ AGGREGATION (ADD THIS PART)
+    const total = stats.reduce((sum, s) => sum + s.count, 0);
+    const average = stats.length ? total / stats.length : 0;
+    const max = stats.length ? Math.max(...stats.map(s => s.count)) : 0;
+
+    // 3️⃣ RETURN ENRICHED RESPONSE
     return NextResponse.json({
       success: true,
-      stats: {
-        total: totalLogs,
-        errors: errorLogs,
-        warnings: warnLogs,
+      stats,
+      summary: {
+        total,
+        average,
+        max,
+        windows: stats.length,
       },
     });
-  } catch (error: any) {
+
+  } catch (err: any) {
+    console.error("Stats API error:", err);
     return NextResponse.json(
-      { success: false, error: error.message },
+      { success: false, error: err.message },
       { status: 500 }
     );
   }
