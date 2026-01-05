@@ -17,6 +17,7 @@ export async function POST(req: Request) {
   try {
     await connectDB();
     const body = await req.json();
+    const projectId = body.projectId || "default";
 
     // 1️⃣ Normalize + hash
     const normalizedMessage = normalizeLog(body.message);
@@ -25,6 +26,7 @@ export async function POST(req: Request) {
 
     // 2️⃣ ALWAYS save the log
     const log = await Log.create({
+      projectId,
       level: body.level,
       message: body.message,
       normalizedMessage,
@@ -45,9 +47,10 @@ export async function POST(req: Request) {
 
     // 4️⃣ CLUSTERING (only if clusterable)
     await LogCluster.findOneAndUpdate(
-      { hash },
+      { projectId, hash },
       {
         $setOnInsert: {
+          projectId,
           normalizedMessage,
           firstSeen: new Date(),
         },
@@ -59,18 +62,25 @@ export async function POST(req: Request) {
 
     const windowStart = getWindowStart(new Date());
 
-        await LogStat.findOneAndUpdate(
-      {
-        clusterHash: hash,
-        windowStart,
-      },
-      {
-        $inc: { count: 1 },
-      },
-      { upsert: true }
-    );
+      await LogStat.findOneAndUpdate(
+  {
+    projectId,
+    clusterHash: hash,
+    windowStart,
+  },
+  {
+    $setOnInsert: {
+      projectId,
+      clusterHash: hash,
+      windowStart,
+    },
+    $inc: { count: 1 },
+  },
+  { upsert: true }
+);
+
           //SPIKE DETECTION
-    const recentStats = await LogStat.find({ clusterHash: hash })
+    const recentStats = await LogStat.find({ projectId, clusterHash: hash })
       .sort({ windowStart: -1 })
       .limit(6)
       .lean();
@@ -88,9 +98,14 @@ export async function POST(req: Request) {
         if (current.count >= baseline * 5) severity = "HIGH";
         else if (current.count >= baseline * 3) severity = "MEDIUM";
 
-        await Anomaly.findOneAndUpdate(
-  { clusterHash: hash, windowStart: current.windowStart },
+       await Anomaly.findOneAndUpdate(
   {
+    projectId,                    // ✅ ADD
+    clusterHash: hash,
+    windowStart: current.windowStart,
+  },
+  {
+    projectId,
     clusterHash: hash,
     windowStart: current.windowStart,
     count: current.count,
@@ -101,6 +116,7 @@ export async function POST(req: Request) {
   },
   { upsert: true }
 );
+
 
       }
     }

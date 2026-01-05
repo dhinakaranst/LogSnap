@@ -1,41 +1,15 @@
-import CredentialsProvider from "next-auth/providers/credentials";
-import { AuthOptions } from "next-auth";
-import bcrypt from "bcryptjs";
-import { connectDB } from "@/lib/db";
-import User from "../model/User";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
-export const authOptions: AuthOptions = {
-  providers: [
-    CredentialsProvider({
-      name: "Credentials",
-      credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" },
-      },
-      async authorize(credentials) {
-        await connectDB();
+export async function requireSession() {
+  const session = await getServerSession(authOptions);
 
-        const user = await User.findOne({
-          email: credentials?.email,
-        });
+  if (!session || !session.user?.projectId) {
+    throw new Error("Unauthorized");
+  }
 
-        if (!user) return null;
-
-        const isValid = await bcrypt.compare(
-          credentials!.password,
-          user.password
-        );
-
-        if (!isValid) return null;
-
-        return {
-          id: user._id.toString(),
-          email: user.email,
-        };
-      },
-    }),
-  ],
-  session: { strategy: "jwt" },
-  pages: { signIn: "/login" },
-  secret: process.env.NEXTAUTH_SECRET,
-};
+  return {
+    user: session.user,
+    projectId: session.user.projectId,
+  };
+}

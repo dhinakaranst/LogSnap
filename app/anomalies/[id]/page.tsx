@@ -1,13 +1,13 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
+import { formatDistanceToNow } from "date-fns";
+import LogCard from "@/components/LogCard";
 
-export default function AnomalyDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = use(params);
+export default function AnomalyDetailPage() {
+  const params = useParams();
+  const id = params.id as string;
 
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -15,60 +15,59 @@ export default function AnomalyDetailPage({
   useEffect(() => {
     fetch(`/api/anomalies/${id}`)
       .then((res) => res.json())
-      .then((json) => {
-        if (json.success) {
-          setData(json);
-        }
+      .then((res) => {
+        setData(res);
         setLoading(false);
       });
   }, [id]);
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-black p-6 text-white/60">
-        Loading anomaly details…
-      </div>
-    );
+    return <p className="p-6 text-white/60">Loading anomaly details...</p>;
   }
 
-  if (!data) {
-    return (
-      <div className="min-h-screen bg-black p-6 text-red-500">
-        Failed to load anomaly
-      </div>
-    );
-  }
+  if (!data?.success) {
+  return (
+    <div className="p-6 text-red-400">
+      Failed to load anomaly details.<br />
+      Please try again later.
+    </div>
+  );
+}
 
   const { anomaly, cluster, logs } = data;
-
+ 
   return (
-    <div className="min-h-screen bg-black p-6 space-y-8 text-white">
-      {/* HEADER */}
-      <div>
-        <h1 className="text-2xl font-bold">Anomaly Details</h1>
-        <p className="text-white/60">
-          Detected at {new Date(anomaly.detectedAt).toLocaleString()}
+    <div className="min-h-screen bg-black text-white p-6 space-y-6">
+      {/* ================= HEADER CARD ================= */}
+      <div className="rounded-lg bg-white/5 border border-white/10 p-5">
+        <div className="flex items-center justify-between">
+          <h1 className="text-lg font-semibold">
+            {cluster.normalizedMessage}
+          </h1>
+
+          <span
+            className={`px-3 py-1 rounded text-xs font-semibold ${
+              anomaly.severity === "HIGH"
+                ? "bg-red-500/20 text-red-400"
+                : anomaly.severity === "MEDIUM"
+                ? "bg-yellow-500/20 text-yellow-400"
+                : "bg-green-500/20 text-green-400"
+            }`}
+          >
+            {anomaly.severity}
+          </span>
+        </div>
+
+        <p className="mt-1 text-xs text-white/50">
+          Detected{" "}
+          {formatDistanceToNow(new Date(anomaly.detectedAt))} ago
         </p>
       </div>
 
-      {/* SEVERITY */}
-      <div>
-        <span
-          className={`inline-block rounded px-3 py-1 text-sm font-semibold ${
-            anomaly.severity === "HIGH"
-              ? "bg-red-500/20 text-red-400"
-              : anomaly.severity === "MEDIUM"
-              ? "bg-yellow-500/20 text-yellow-400"
-              : "bg-green-500/20 text-green-400"
-          }`}
-        >
-          {anomaly.severity} severity
-        </span>
-      </div>
+      {/* ================= WHAT HAPPENED ================= */}
+      <div className="rounded bg-white/5 p-4 border border-white/10">
+        <h2 className="font-semibold mb-2">What happened</h2>
 
-      {/* PROBLEM */}
-      <div className="rounded-lg border border-white/10 bg-white/5 p-4">
-        <h2 className="mb-2 font-semibold">Problem</h2>
         <p className="text-white/80">
           {cluster.normalizedMessage}
         </p>
@@ -82,42 +81,52 @@ export default function AnomalyDetailPage({
         </div>
       </div>
 
-      {/* WHY FLAGGED */}
-      <div className="rounded-lg border border-white/10 bg-white/5 p-4">
-        <h2 className="mb-2 font-semibold">Why this was flagged</h2>
-        <p className="text-white/80">{anomaly.reason}</p>
+      {/* ================= WHY FLAGGED ================= */}
+      <div className="rounded bg-white/5 p-4 border border-white/10">
+        <h2 className="font-semibold mb-2">Why this was flagged</h2>
+
+        <ul className="list-disc pl-5 text-sm text-white/80 space-y-1">
+          <li>{anomaly.reason}</li>
+          <li>Error frequency exceeded the threshold</li>
+          <li>Spike detected in a short time window</li>
+        </ul>
       </div>
 
-      {/* RECENT LOGS */}
-      <div className="rounded-lg border border-white/10 bg-white/5 p-4">
-        <h2 className="mb-4 font-semibold">Recent logs</h2>
+      {/* AI Explanation */}
+<div className="rounded bg-white/5 p-4 border border-white/10">
+  <h2 className="font-semibold mb-2">AI Explanation</h2>
 
-        <div className="space-y-3">
-          {logs.map((log: any) => (
-            <div
-              key={log._id}
-              className="rounded bg-black/40 p-3"
-            >
-              <p
-                className={`text-sm font-semibold ${
-                  log.level === "ERROR"
-                    ? "text-red-400"
-                    : log.level === "WARN"
-                    ? "text-yellow-400"
-                    : "text-green-400"
-                }`}
-              >
-                {log.level} · {log.source}
-              </p>
+  {anomaly.aiExplanation ? (
+    <p className="text-white/80 leading-relaxed">
+      {anomaly.aiExplanation}
+    </p>
+  ) : (
+    <p className="text-white/50">
+      Generating explanation...
+    </p>
+  )}
+</div>
 
-              <p className="mt-1 text-white/90">{log.message}</p>
 
-              <p className="mt-1 text-xs text-white/40">
-                {new Date(log.timestamp).toLocaleString()}
-              </p>
-            </div>
-          ))}
-        </div>
+      {/* ================= RECENT LOGS ================= */}
+      <div>
+        <h2 className="font-semibold mb-3">Recent logs</h2>
+
+        {logs.length === 0 && (
+          <p className="text-sm text-white/50">
+            No recent logs found for this anomaly.
+          </p>
+        )}
+
+        {logs.map((log: any) => (
+          <LogCard
+            key={log._id}
+            level={log.level}
+            source={log.source}
+            message={log.message}
+            timestamp={log.timestamp}
+          />
+        ))}
       </div>
     </div>
   );

@@ -24,6 +24,9 @@ export default function LogsLayout({ children }: { children: ReactNode }) {
           <Link className="block rounded px-3 py-2 hover:bg-white/10" href="/logs/logs">
             Logs
           </Link>
+          <Link href="/anomalies" className="px-3 py-2 rounded hover:bg-white/10">
+          Anomalies
+          </Link>
           <Link className="block rounded px-3 py-2 hover:bg-white/10" href="/logs/ingest">
             Ingest
           </Link>

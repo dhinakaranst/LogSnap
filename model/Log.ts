@@ -1,6 +1,11 @@
 import mongoose from "mongoose";
 
 const LogSchema = new mongoose.Schema({
+  projectId: {
+  type: String,
+  required: true,
+  index: true,
+},
   level: {
     type: String,
     enum: ["INFO", "WARN", "ERROR"],

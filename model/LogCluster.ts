@@ -1,6 +1,12 @@
 import mongoose from "mongoose";
 
 const LogClusterSchema = new mongoose.Schema({
+  projectId: {
+  type: String,
+  required: true,
+  index: true,
+},
+
   hash: {
     type: String,
     required: true,

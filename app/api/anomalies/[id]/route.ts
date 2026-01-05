@@ -3,17 +3,22 @@ import { connectDB } from "@/lib/db";
 import Anomaly from "@/model/Anomaly";
 import LogCluster from "@/model/LogCluster";
 import Log from "@/model/Log";
+import { generateAnomalyExplanation } from "@/lib/ai/explainAnomaly";
 
-export async function GET(
-  req: Request,
-  context: { params: Promise<{ id: string }> }
-) {
+export async function GET(req: Request, context: any) {
   try {
     const { id } = await context.params;
 
+    const projectId =
+      new URL(req.url).searchParams.get("projectId") || "default";
+
     await connectDB();
 
-    const anomaly = await Anomaly.findById(id).lean();
+    // ✅ PROJECT-SCOPED FIND
+    const anomaly = await Anomaly.findOne({
+      _id: id,
+      projectId,
+    });
 
     if (!anomaly) {
       return NextResponse.json(
@@ -22,11 +27,29 @@ export async function GET(
       );
     }
 
+    // ✅ PROJECT-SCOPED CLUSTER
     const cluster = await LogCluster.findOne({
+      projectId,
       hash: anomaly.clusterHash,
     }).lean();
 
+    // ✅ AI explanation (safe)
+    if (!anomaly.aiExplanation && cluster?.normalizedMessage) {
+      const explanation = await generateAnomalyExplanation({
+        severity: anomaly.severity,
+        spikeCount: anomaly.count,
+        message: cluster.normalizedMessage,
+      });
+
+      if (explanation) {
+        anomaly.aiExplanation = explanation;
+        await anomaly.save();
+      }
+    }
+
+    // ✅ PROJECT-SCOPED LOGS
     const logs = await Log.find({
+      projectId,
       hash: anomaly.clusterHash,
     })
       .sort({ timestamp: -1 })
@@ -39,9 +62,10 @@ export async function GET(
       cluster,
       logs,
     });
-  } catch (err: any) {
+  } catch (err) {
+    console.error("Anomaly API error:", err);
     return NextResponse.json(
-      { success: false, error: err.message },
+      { success: false, error: "Failed to load anomaly details" },
       { status: 500 }
     );
   }

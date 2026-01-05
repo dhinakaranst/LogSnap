@@ -1,6 +1,12 @@
 import mongoose from "mongoose";
 
 const AnomalySchema = new mongoose.Schema({
+    projectId: {
+  type: String,
+  required: true,
+  index: true,
+},
+
     clusterHash:{
         type : String,
         required: true,
@@ -32,6 +38,11 @@ const AnomalySchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+
+  aiExplanation: {
+  type: String,
+  default: null,
+}
 
 });
 
