@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { AnomalyItem } from "@/lib/types";
 
 type LogCardProps = {
   hash: string; 
@@ -19,7 +20,7 @@ export default function LogCard({
   timestamp,
   hash,
 }: LogCardProps) {
-  const [anomaly, setAnomaly] = useState<any>(null);
+  const [anomaly, setAnomaly] = useState<AnomalyItem | null>(null);
 
   // 🔍 Check if this log belongs to an anomaly
   useEffect(() => {

@@ -4,12 +4,13 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
 import LogCard from "@/components/LogCard";
+import { AnomalyDetailResponse, LogItem } from "@/lib/types";
 
 export default function AnomalyDetailPage() {
   const params = useParams();
   const id = params.id as string;
 
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<AnomalyDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -118,7 +119,7 @@ export default function AnomalyDetailPage() {
           </p>
         )}
 
-        {logs.map((log: any) => (
+        {logs.map((log: LogItem) => (
           <LogCard
             key={log._id}
             hash={log.hash}
