@@ -90,6 +90,7 @@ export default function DashboardPage() {
         .map((log) => (
           <LogCard
             key={log._id}
+            hash={log.hash} 
             level={log.level}
             source={log.source}
             message={log.message}
