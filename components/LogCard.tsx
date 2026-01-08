@@ -4,11 +4,12 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 
 type LogCardProps = {
+  hash: string; 
   level: string;
   source: string;
   message: string;
   timestamp: string;
-  hash: string; // ✅ NEW
+  
 };
 
 export default function LogCard({

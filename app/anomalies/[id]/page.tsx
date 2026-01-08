@@ -121,6 +121,7 @@ export default function AnomalyDetailPage() {
         {logs.map((log: any) => (
           <LogCard
             key={log._id}
+            hash={log.hash}
             level={log.level}
             source={log.source}
             message={log.message}
